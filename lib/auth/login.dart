@@ -14,97 +14,91 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Flutter Login/Logout'),
-        ),
-        body: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  height: 200,
-                  child: Image.network(
-                      'http://blog.back4app.com/wp-content/uploads/2017/11/logo-b4a-1-768x175-1.png'),
+      appBar: AppBar(
+        title: const Text('Logowanie'),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: const Text(
+                  'Logowanie do aplikacji',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Center(
-                  child: const Text('Flutter on Back4App',
-                      style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ),
-                SizedBox(
-                  height: 16,
-                ),
-                Center(
-                  child: const Text('User Login/Logout',
-                      style: TextStyle(fontSize: 16)),
-                ),
-                SizedBox(
-                  height: 16,
-                ),
-                TextField(
-                  controller: controllerUsername,
-                  enabled: !isLoggedIn,
-                  keyboardType: TextInputType.text,
-                  textCapitalization: TextCapitalization.none,
-                  autocorrect: false,
-                  decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black)),
-                      labelText: 'Username'),
-                ),
-                SizedBox(
-                  height: 8,
-                ),
-                TextField(
-                  controller: controllerPassword,
-                  enabled: !isLoggedIn,
-                  obscureText: true,
-                  keyboardType: TextInputType.text,
-                  textCapitalization: TextCapitalization.none,
-                  autocorrect: false,
-                  decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black)),
-                      labelText: 'Password'),
-                ),
-                SizedBox(
-                  height: 16,
-                ),
-                Container(
-                  height: 50,
-                  child: TextButton(
-                    child: const Text('Login'),
-                    onPressed: isLoggedIn ? null : () => doUserLogin(),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              TextField(
+                controller: controllerUsername,
+                enabled: !isLoggedIn,
+                keyboardType: TextInputType.text,
+                textCapitalization: TextCapitalization.none,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.black),
                   ),
+                  labelText: 'Username',
                 ),
-                SizedBox(
-                  height: 16,
-                ),
-                Container(
-                  height: 50,
-                  child: TextButton(
-                    child: const Text('Sign Up'),
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/register');
-                      },
+              ),
+              SizedBox(
+                height: 8,
+              ),
+              TextField(
+                controller: controllerPassword,
+                enabled: !isLoggedIn,
+                obscureText: true,
+                keyboardType: TextInputType.text,
+                textCapitalization: TextCapitalization.none,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.black),
                   ),
+                  labelText: 'Password',
                 ),
-                SizedBox(
-                  height: 16,
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              Container(
+                height: 50,
+                child: TextButton(
+                  child: const Text('Login'),
+                  onPressed: isLoggedIn ? null : () => doUserLogin(),
                 ),
-                Container(
-                  height: 50,
-                  child: TextButton(
-                    child: const Text('Logout'),
-                    onPressed: !isLoggedIn ? null : () => doUserLogout(),
-                  ),
-                )
-              ],
-            ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              Container(
+                height: 50,
+                child: TextButton(
+                  child: const Text('Sign Up'),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/register');
+                  },
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              Container(
+                height: 50,
+                child: TextButton(
+                  child: const Text('Logout'),
+                  onPressed: !isLoggedIn ? null : () => doUserLogout(),
+                ),
+              ),
+            ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 
   void showSuccess(String message) {
@@ -115,7 +109,7 @@ class _LoginPageState extends State<LoginPage> {
           title: const Text("Success!"),
           content: Text(message),
           actions: <Widget>[
-            new TextButton(
+            TextButton(
               child: const Text("OK"),
               onPressed: () {
                 Navigator.of(context).pop();
@@ -135,7 +129,7 @@ class _LoginPageState extends State<LoginPage> {
           title: const Text("Error!"),
           content: Text(errorMessage),
           actions: <Widget>[
-            new TextButton(
+            TextButton(
               child: const Text("OK"),
               onPressed: () {
                 Navigator.of(context).pop();
@@ -156,7 +150,16 @@ class _LoginPageState extends State<LoginPage> {
     var response = await user.login();
 
     if (response.success) {
-      showSuccess("User was successfully login!");
+      final currentUser = await ParseUser.currentUser() as ParseUser;
+      final isAdmin = currentUser.get<bool>('admin') ?? false;
+
+      if (isAdmin) {
+        Navigator.pushNamed(context, '/menuAdmin');
+      } else {
+        Navigator.pushNamed(context, '/menuUser');
+      }
+
+      showSuccess("Użytkownik został pomyślnie zalogowany");
       setState(() {
         isLoggedIn = true;
       });
@@ -165,12 +168,13 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+
   void doUserLogout() async {
     final user = await ParseUser.currentUser() as ParseUser;
     var response = await user.logout();
 
     if (response.success) {
-      showSuccess("User was successfully logout!");
+      showSuccess("Użytkownik został pomyślnie wylogowany");
       setState(() {
         isLoggedIn = false;
       });
