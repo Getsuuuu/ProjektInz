@@ -1,29 +1,53 @@
 import 'package:flutter/material.dart';
 
 class FilterScreen extends StatefulWidget {
+  final Map<String, List<String>> selectedFilters;
+
+  FilterScreen({Key? key, required this.selectedFilters}) : super(key: key);
+
   @override
   _FilterScreenState createState() => _FilterScreenState();
 }
 
 class _FilterScreenState extends State<FilterScreen> {
-  bool filterOption1 = false;
-  bool filterOption2 = false;
-  bool filterOption3 = false;
+  Map<String, List<String>> filters = {
+    'Wiek': [
+      "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+      "11", "12", "13", "14", "15", "16", "17", "18",
+      "1+", "2+", "3+", "4+", "5+", "6+", "7+", "8+",
+      "9+", "10+", "11+", "12+", "13+", "14+", "15+",
+      "16+", "17+", "18+"
+    ],
+    'LiczbaGraczy': [
+      "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+      "11", "12", "13", "14", "15", "16", "17", "18",
+      "1+", "2+", "3+", "4+", "5+", "6+", "7+", "8+",
+      "9+", "10+", "11+", "12+", "13+", "14+", "15+",
+      "16+", "17+", "18+"
+    ],
+    'Kategoria': [
+      "Ekonomiczne", "Strategiczne", "Rodzinne", "Dla dzieci", "Przygodowe", "Karciane", "Kooperacyjne", "Wojenne",
+      "Dedukcyjne", "Imprezowe", "Logiczne", "Słowne", "Sci-fi", "Fantasy", "Edukacyjne", "Abstrakcyjne"],
+  };
+
+  late Map<String, List<String>> selectedFilters;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedFilters = Map.from(widget.selectedFilters) ?? {};
+    for (var category in filters.keys) {
+      if (!selectedFilters.containsKey(category)) {
+        selectedFilters[category] = [];
+      }
+    }
+  }
 
   void applyFilters() {
-    List<String> selectedFilters = [];
-
-    if (filterOption1) {
-      selectedFilters.add('Filter 1');
-    }
-    if (filterOption2) {
-      selectedFilters.add('Filter 2');
-    }
-    if (filterOption3) {
-      selectedFilters.add('Filter 3');
-    }
-
-    Navigator.pop(context, selectedFilters);
+    Navigator.pop(context, {
+      'searchQuery': '',
+      'selectedFilters': selectedFilters,
+    });
   }
 
   @override
@@ -43,33 +67,8 @@ class _FilterScreenState extends State<FilterScreen> {
             ),
           ),
           SizedBox(height: 16.0),
-          CheckboxListTile(
-            title: Text('Filter Option 1'),
-            value: filterOption1,
-            onChanged: (value) {
-              setState(() {
-                filterOption1 = value ?? false;
-              });
-            },
-          ),
-          CheckboxListTile(
-            title: Text('Filter Option 2'),
-            value: filterOption2,
-            onChanged: (value) {
-              setState(() {
-                filterOption2 = value ?? false;
-              });
-            },
-          ),
-          CheckboxListTile(
-            title: Text('Filter Option 3'),
-            value: filterOption3,
-            onChanged: (value) {
-              setState(() {
-                filterOption3 = value ?? false;
-              });
-            },
-          ),
+          for (var category in filters.keys)
+            _buildFilterCategory(category),
           SizedBox(height: 16.0),
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -81,5 +80,32 @@ class _FilterScreenState extends State<FilterScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildFilterCategory(String category) {
+    if (filters.containsKey(category)) {
+      return ExpansionTile(
+        title: Text(category),
+        children: [
+          for (var filter in filters[category]!)
+            CheckboxListTile(
+              title: Text(filter),
+              value: selectedFilters[category]?.contains(filter) ?? false,
+              onChanged: (value) {
+                setState(() {
+                  if (value!) {
+                    selectedFilters[category]?.add(filter);
+                  } else {
+                    selectedFilters[category]?.remove(filter);
+                  }
+                });
+              },
+            ),
+        ],
+      );
+    } else {
+      // Handle the case where category is not a valid key in the filters map.
+      return Container();
+    }
   }
 }

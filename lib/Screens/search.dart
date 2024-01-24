@@ -13,7 +13,13 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
+  Map<String, List<String>> selectedFilters = {
+    'Wiek': [],
+    'LiczbaGraczy': [],
+    'Kategoria': [],
+  };
   IconData sortIcon = Icons.arrow_upward;
+  IconData filter = Icons.filter_alt;
   List<ParseObject> gameList = [];
   List<ParseObject> searchResults = [];
   bool _isLoading = false;
@@ -29,6 +35,7 @@ class _SearchPageState extends State<SearchPage> {
   int selectedSortIndex = 0;
   ScrollController _scrollController = ScrollController();
   TextEditingController _searchController = TextEditingController();
+
 
   @override
   void initState() {
@@ -54,7 +61,10 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
-  Future<void> fetchGameList({String? searchQuery}) async {
+  Future<void> fetchGameList({
+    String searchQuery = "",
+    Map<String, List<String>>? selectedFilters,
+  }) async {
     if (_isLoading || _isLastPage) return;
 
     setState(() {
@@ -71,9 +81,16 @@ class _SearchPageState extends State<SearchPage> {
       queryBuilder.orderByAscending('Nazwa');
     }
 
-
     if (searchQuery != null && searchQuery.isNotEmpty) {
       queryBuilder.whereContains('Nazwa', searchQuery);
+    }
+
+    if (selectedFilters != null) {
+      selectedFilters.forEach((filterKey, filterValues) {
+        if (filterValues.isNotEmpty) {
+          queryBuilder.whereContainedIn(filterKey, filterValues);
+        }
+      });
     }
 
     final response = await queryBuilder.query();
@@ -99,7 +116,7 @@ class _SearchPageState extends State<SearchPage> {
         _scrollController.position.maxScrollExtent -
             _scrollController.position.pixels <=
             _scrollThreshold) {
-      loadMoreData();
+      loadMoreData(selectedFilters: selectedFilters);
     }
 
     setState(() {
@@ -107,17 +124,35 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
-  Future<void> loadMoreData() async {
+  Future<void> loadMoreData({Map<String, List<String>>? selectedFilters}) async {
     if (!isLoadingMore && !_isLastPage) {
       setState(() {
         isLoadingMore = true;
       });
-      await fetchGameList(searchQuery: searchQuery);
+      await fetchGameList(
+        searchQuery: searchQuery,
+        selectedFilters: selectedFilters,
+      );
       setState(() {
         isLoadingMore = false;
       });
     }
   }
+
+  Future<void> _handleRefresh() async {
+    setState(() {
+      searchResults.clear();
+      gameList.clear();
+      pageKey = 0;
+      _isLastPage = false;
+    });
+
+    await fetchGameList(
+      searchQuery: _searchController.text,
+      selectedFilters: selectedFilters,
+    );
+  }
+
 
 
   void applySorting(int selectedSortIndex) {
@@ -149,168 +184,195 @@ class _SearchPageState extends State<SearchPage> {
       searchQuery = _searchController.text;
       isSearching = true;
     });
-    await fetchGameList(searchQuery: searchQuery);
+
+    await fetchGameList(
+        searchQuery: searchQuery, selectedFilters: selectedFilters);
   }
 
-  void navigateToFilterScreen() {
-    Navigator.push(
+  void resetSearch() {
+    setState(() {
+      gameList.clear();
+      searchResults.clear();
+      pageKey = 0;
+      _isLastPage = false;
+      _isLoading = false;
+    });
+  }
+
+  navigateToFilterScreen() async {
+    final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => FilterScreen()),
+      MaterialPageRoute(
+        builder: (context) => FilterScreen(selectedFilters: selectedFilters),
+      ),
     );
+
+    if (result is Map) {
+      setState(() {
+        selectedFilters = result['selectedFilters'] ?? {};
+      });
+
+      resetSearch();
+
+      await fetchGameList(
+        searchQuery: searchQuery,
+        selectedFilters: selectedFilters,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    List<ParseObject> currentList = isSearching ? searchResults : gameList;
     int itemCount = isSearching ? searchResults.length : gameList.length;
     return WillPopScope(
         onWillPop: () async {
-          if (Navigator.canPop(context)) {
-            return true;
+          final ParseUser currentUser = await ParseUser.currentUser() as ParseUser;
+          final bool isAdmin = currentUser.get<bool>('admin') ?? false;
+
+          if (isAdmin) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MenuPageAdmin()),
+            );
           } else {
-            final ParseUser currentUser =
-                await ParseUser.currentUser() as ParseUser;
-            final bool isAdmin = currentUser.get<bool>('admin') ?? false;
-
-            if (isAdmin) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => MenuPageAdmin()),
-              );
-            } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => MenuPageUser()),
-              );
-            }
-
-            return false;
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MenuPageUser()),
+            );
           }
+
+          await Future.delayed(Duration(milliseconds: 100));
+
+          return false;
         },
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text("Wyszukiwarka"),
-          ),
-          body: RefreshIndicator(
-            onRefresh: () async {
-              setState(() {
-                searchResults.clear();
-                gameList.clear();
-                pageKey = 0;
-              });
-              await fetchGameList(searchQuery: searchQuery);
-            },
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            labelText: 'Wyszukaj grę',
-                            suffixIcon: IconButton(
-                              icon: Icon(Icons.search),
-                              onPressed: refreshListBySearchQuery,
+        child: Stack(children: [
+          Scaffold(
+            appBar: AppBar(
+              title: Text("Wyszukiwarka"),
+            ),
+            body: RefreshIndicator(
+              onRefresh: _handleRefresh,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              labelText: 'Wyszukaj grę',
+                              suffixIcon: IconButton(
+                                icon: Icon(Icons.search),
+                                onPressed: refreshListBySearchQuery,
+                              ),
                             ),
+                            onSubmitted: (value) {
+                              refreshListBySearchQuery();
+                            },
                           ),
-                          onSubmitted: (value) {
-                            refreshListBySearchQuery();
-                          },
                         ),
-                      ),
-                      SizedBox(width: 8.0),
-                      IconButton(
-                        icon: Icon(sortIcon),
-                        onPressed: toggleSortOrder,
-                      ),
-                      SizedBox(width: 8.0),
-                      ElevatedButton(
-                        onPressed: navigateToFilterScreen,
-                        child: Text('Filtruj'),
-                      ),
-                    ],
+                        SizedBox(width: 8.0),
+                        IconButton(
+                          icon: Icon(sortIcon, color: Colors.grey),
+                          onPressed: toggleSortOrder,
+                        ),
+                        SizedBox(width: 8.0),
+                        IconButton(
+                          icon: Icon(filter, color: Colors.grey,),
+                          onPressed: navigateToFilterScreen,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: itemCount == 0
-                      ? Center(
-                          child: Text('No games found'),
-                        )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          itemCount: itemCount + 1,
-                          itemBuilder: (BuildContext context, int index) {
-                            if (index == itemCount) {
-                              return Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Center(
-                                  child: isLoadingMore
-                                      ? CircularProgressIndicator()
-                                      : null,
-                                ),
-                              );
-                            } else {
-                              final ParseObject game = isSearching
-                                  ? searchResults[index]
-                                  : gameList[index];
-                              final ParseFile? image =
-                                  game.get<ParseFile>('Zdjecie');
-                              String imageUrl = '';
-                              if (image != null) {
-                                imageUrl = image.url!;
-                              }
-                              return InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => GameDetailsScreen(
-                                        game: game,
-                                        gameId: game.objectId ?? '',
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: AnimatedContainer(
-                                  duration: Duration(milliseconds: 300),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8.0),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black38,
-                                        blurRadius: 4.0,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                  Expanded(
+                    child: currentList.isEmpty && !_isLoading
+                        ? Center(
+                            child: Text('Nic tu nie ma'),
+                          )
+                        : ListView.builder(
+                            controller: _scrollController,
+                            itemCount: itemCount + 1,
+                            itemBuilder: (BuildContext context, int index) {
+                              if (index == itemCount) {
+                                return Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Center(
+                                    child: isLoadingMore
+                                        ? CircularProgressIndicator()
+                                        : null,
                                   ),
-                                  child: ListTile(
-                                    leading: ClipOval(
-                                      child: FadeInImage(
-                                        placeholder:
-                                            AssetImage('assets/loader.gif'),
-                                        image: CachedNetworkImageProvider(
-                                          imageUrl,
+                                );
+                              } else {
+                                final ParseObject game = isSearching
+                                    ? searchResults[index]
+                                    : gameList[index];
+                                final ParseFile? image =
+                                    game.get<ParseFile>('Zdjecie');
+                                String imageUrl = '';
+                                if (image != null) {
+                                  imageUrl = image.url!;
+                                }
+                                return InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => GameDetailsScreen(
+                                          game: game,
+                                          gameId: game.objectId ?? '',
                                         ),
-                                        fit: BoxFit.cover,
-                                        width: 40.0,
-                                        height: 40.0,
                                       ),
+                                    );
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: Duration(milliseconds: 300),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black38,
+                                          blurRadius: 4.0,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
-                                    title:
-                                        Text(game.get<String>('Nazwa') ?? ''),
+                                    child: ListTile(
+                                      leading: ClipOval(
+                                        child: FadeInImage(
+                                          placeholder:
+                                              AssetImage('assets/loader.gif'),
+                                          image: CachedNetworkImageProvider(
+                                            imageUrl,
+                                          ),
+                                          fit: BoxFit.cover,
+                                          width: 40.0,
+                                          height: 40.0,
+                                        ),
+                                      ),
+                                      title:
+                                          Text(game.get<String>('Nazwa') ?? ''),
+                                    ),
                                   ),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                ),
-              ],
+                                );
+                              }
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ));
+          if (_isLoading && !isLoadingMore)
+            Container(
+              color: Colors.black26,
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+        ]));
   }
 }

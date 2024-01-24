@@ -23,6 +23,12 @@ class _MenuPageUserState extends State<MenuPageUser> {
           },
           child: Text('Rezerwacje'),
         ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pushNamed(context, '/');
+          },
+          child: Text('Wyloguj'),
+        ),
       ],
     );
   }

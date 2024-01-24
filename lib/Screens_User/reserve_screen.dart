@@ -12,36 +12,96 @@ class ReservePage extends StatefulWidget {
 
 class _ReservePageState extends State<ReservePage> {
   List<ParseObject>? reservedGames;
+  late LiveQuery liveQuery;
+  late Subscription qrCodeSubscription;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     fetchReservedGames();
+    initializeLiveQuery();
   }
 
+  void initializeLiveQuery() async {
+    liveQuery = LiveQuery();
+
+    final currentUser = await ParseUser.currentUser();
+
+    if (currentUser != null) {
+      final userPointer = ParseObject('_User')..objectId = currentUser.objectId;
+
+      QueryBuilder<ParseObject> qrCodeQuery =
+      QueryBuilder<ParseObject>(ParseObject('Rezerwacje'))
+        ..whereEqualTo('user', userPointer)
+        ..includeObject(['gra']);
+
+      qrCodeSubscription = await liveQuery.client.subscribe(qrCodeQuery);
+
+      qrCodeSubscription.on(LiveQueryEvent.create, (value) {
+        print('Object created: $value');
+      });
+
+      qrCodeSubscription.on(LiveQueryEvent.update, (value) {
+        print('Object updated: $value');
+      });
+
+      qrCodeSubscription.on(LiveQueryEvent.delete, (value) {
+        print('Object deleted: $value');
+      });
+
+    }
+  }
+
+  @override
+  void dispose() {
+    liveQuery.client.unSubscribe(qrCodeSubscription);
+    super.dispose();
+  }
 
   Future<void> fetchReservedGames() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     final currentUser = await ParseUser.currentUser();
     final user = ParseObject('_User')..objectId = currentUser?.objectId;
 
-    final query = QueryBuilder<ParseObject>(ParseObject('Rezerwacje'))
+    final rezerwacjeQuery = QueryBuilder<ParseObject>(ParseObject('Rezerwacje'))
       ..whereEqualTo('user', user)
       ..includeObject(['gra']);
 
-    final response = await query.query();
+    final rezerwacjeResponse = await rezerwacjeQuery.query();
 
-    if (response.success && response.results != null) {
+    if (rezerwacjeResponse.success && rezerwacjeResponse.results != null) {
+      final rezerwacje = rezerwacjeResponse.results!;
+
+      final reservedGamesNotScanned = await Future.wait(rezerwacje.map((rezerwacja) async {
+        final uniqueId = rezerwacja.get<String>('uniqueId');
+        return !await isGameScanned(uniqueId) ? rezerwacja.get<ParseObject>('gra') : null;
+      }));
+
       setState(() {
-        reservedGames = response.results!
-            .map((result) => result.get<ParseObject>('gra'))
-            .where((game) => game != null) // Filter out null values
-            .cast<ParseObject>()
-            .toList();
+        reservedGames = reservedGamesNotScanned.where((game) => game != null).cast<ParseObject>().toList();
+        _isLoading = false;
       });
     } else {
-      print('Error fetching reserved games: ${response.error}');
+      setState(() {
+        _isLoading = false;
+      });
+      print('Error: ${rezerwacjeResponse.error}');
     }
   }
+
+  Future<bool> isGameScanned(String uniqueId) async {
+    final scannedQuery = QueryBuilder<ParseObject>(ParseObject('ScannedQR'))
+      ..whereEqualTo('uniqueId', uniqueId);
+
+    final scannedResponse = await scannedQuery.query();
+    return scannedResponse.success && scannedResponse.results != null && scannedResponse.results!.isNotEmpty;
+  }
+
+
   void refreshReservedGames() {
     fetchReservedGames();
   }
@@ -50,69 +110,88 @@ class _ReservePageState extends State<ReservePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Reserved Games'),
+        title: Text('Zarezerwowane gry'),
       ),
-      body: reservedGames != null && reservedGames!.isNotEmpty
-          ? ListView.builder(
-              itemCount: reservedGames!.length,
-              itemBuilder: (context, index) {
-                final game = reservedGames![index];
-                final gameName = game.get<String>('Nazwa');
-                final ParseFile? image = game.get<ParseFile>('Zdjecie');
-                String imageUrl = '';
-                if (image != null) {
-                  imageUrl = image.url!;
-                }
-
-                return InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => GameDetailsScreenUser(
-                          game: game,
-                          gameId: game.objectId ?? '',
-                          refreshReservedGames: refreshReservedGames,
-                        ),
-                      ),
-                    );
-                  },
-                  child: AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black38,
-                          blurRadius: 4.0,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      leading: ClipOval(
-                        child: FadeInImage(
-                          placeholder: AssetImage('assets/loader.gif'),
-                          image: NetworkImage(imageUrl),
-                          fit: BoxFit.cover,
-                          width: 40.0,
-                          height: 40.0,
-                        ),
-                      ),
-                      title: Text(gameName ?? ''),
-                    ),
-                  ),
-                );
-              },
-            )
-          : Center(
-              child: Text(
-                'Nic tu nie ma',
-                style: TextStyle(fontSize: 16.0),
+      body: Stack(
+        children: [
+          _buildReservedGamesList(),
+          if (_isLoading)
+            Container(
+              color: Colors.black26,
+              child: Center(
+                child: CircularProgressIndicator(),
               ),
             ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildReservedGamesList() {
+    if (_isLoading) {
+      return Container();
+    } else if (reservedGames != null && reservedGames!.isNotEmpty) {
+      return ListView.builder(
+        itemCount: reservedGames!.length,
+        itemBuilder: (context, index) {
+          final game = reservedGames![index];
+          final gameName = game.get<String>('Nazwa');
+          final ParseFile? image = game.get<ParseFile>('Zdjecie');
+          String imageUrl = '';
+          if (image != null) {
+            imageUrl = image.url!;
+          }
+
+          return InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GameDetailsScreenUser(
+                    game: game,
+                    gameId: game.objectId ?? '',
+                    refreshReservedGames: refreshReservedGames,
+                  ),
+                ),
+              );
+            },
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 300),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black38,
+                    blurRadius: 4.0,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListTile(
+                leading: ClipOval(
+                  child: FadeInImage(
+                    placeholder: AssetImage('assets/loader.gif'),
+                    image: NetworkImage(imageUrl),
+                    fit: BoxFit.cover,
+                    width: 40.0,
+                    height: 40.0,
+                  ),
+                ),
+                title: Text(gameName ?? ''),
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      return Center(
+        child: Text(
+          'Nic tu nie ma',
+          style: TextStyle(fontSize: 16.0),
+        ),
+      );
+    }
   }
 }
 
@@ -136,7 +215,7 @@ class GameDetailsScreenUser extends StatelessWidget {
     }
     return Scaffold(
       appBar: AppBar(
-        title: Text('Game Details'),
+        title: Text('Informacje o grze'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -181,25 +260,12 @@ class GameDetailsScreenUser extends StatelessWidget {
               children: [
                 ElevatedButton(
                   onPressed: () async {
-                    String currentUserEmail = '';
                     final currentUser = await ParseUser.currentUser();
-                    final userQuery =
-                    QueryBuilder<ParseUser>(ParseUser.forQuery())
-                      ..whereEqualTo('objectId', currentUser.objectId)
-                      ..setLimit(1);
-
-                    final response = await userQuery.query();
-                    if (response.success &&
-                        response.results != null &&
-                        response.results!.isNotEmpty) {
-                      final user = response.results!.first;
-                      currentUserEmail = user.get<String>('email') ?? '';
-                    }
 
                     final uniqueIdQuery =
                     QueryBuilder<ParseObject>(ParseObject('Rezerwacje'))
-                      ..whereEqualTo('user', currentUser)..whereEqualTo(
-                        'gra', game);
+                      ..whereEqualTo('user', currentUser)
+                      ..whereEqualTo('gra', game);
 
                     final uniqueIdResponse = await uniqueIdQuery.query();
 
@@ -211,27 +277,30 @@ class GameDetailsScreenUser extends StatelessWidget {
                       uniqueId = rezerwacje.get<String>('uniqueId') ?? '';
                     }
 
-                    String qrCodeData =
-                        'Nazwa: ${game.get<String>('Nazwa') ?? ''}\n'
-                        'Wiek: ${game.get<String>('Wiek') ?? ''}\n'
-                        'Liczba graczy: ${game.get<String>('LiczbaGraczy') ??
-                        ''}\n'
-                        'Kategoria: ${game.get<String>('Kategoria') ?? ''}\n'
-                        'Opis: ${game.get<String>('Opis') ?? ''}\n'
-                        'Dla użytkownika: $currentUserEmail\n'
-                        'Id gry: $uniqueId';
-                    final data = {
-                      'Nazwa': game.get<String>('Nazwa') ?? '',
-                      'Wiek': game.get<String>('Wiek') ?? '',
-                      'Liczba graczy': game.get<String>('LiczbaGraczy') ?? '',
-                      'Kategoria': game.get<String>('Kategoria') ?? '',
-                      'Opis': game.get<String>('Opis') ?? '',
-                      'Dla użytkownika': currentUserEmail,
-                      'Id gry': uniqueId,
-                    };
-                    final jsonData = json.encode(data);
+                    final List<String> jsonData = [
+                      uniqueId,
+                      currentUser.username
+                    ];
+                    final jsonString = json.encode(jsonData);
 
-                    showQRCodeModal(context, jsonData);
+                    showQRCodeModal(context, jsonString);
+
+                    var subscription = await LiveQuery().client.subscribe(
+                      QueryBuilder<ParseObject>(ParseObject('ScannedQR')),
+                    );
+                    subscription.on(LiveQueryEvent.create, (value) {
+                      print('Event type: ${value.runtimeType}');
+                      if (value is ParseObject) {
+                        final uniqueIdFromUpdate = value.get<String>('uniqueId');
+                        if (uniqueIdFromUpdate == uniqueId) {
+                          Navigator.pop(context);
+                          Navigator.pop(context);
+                          refreshReservedGames();
+                        }
+                      } else {
+                        print('Unexpected event type: $value');
+                      }
+                    });
                   },
                   child: Text('Odbierz gre'),
                 ),
@@ -241,8 +310,9 @@ class GameDetailsScreenUser extends StatelessWidget {
                       context: context,
                       builder: (BuildContext context) {
                         return AlertDialog(
-                          title: Text('Anuluj rezerwacje'),
-                          content: Text('Czy na pewno chcesz usunać rezerwacje?'),
+                          title: Text('Anuluj rezerwację'),
+                          content:
+                          Text('Czy na pewno chcesz usunąć rezerwację?'),
                           actions: [
                             TextButton(
                               onPressed: () {
@@ -255,14 +325,15 @@ class GameDetailsScreenUser extends StatelessWidget {
                                 Navigator.pop(context);
                                 Navigator.pop(context);
 
-                                final currentUser = await ParseUser.currentUser();
+                                final currentUser =
+                                await ParseUser.currentUser();
                                 final userPointer = ParseObject('_User')
                                   ..objectId = currentUser.objectId;
                                 final gamePointer = ParseObject('Gry')
                                   ..objectId = gameId;
 
-                                final query =
-                                QueryBuilder<ParseObject>(ParseObject('Rezerwacje'))
+                                final query = QueryBuilder<ParseObject>(
+                                    ParseObject('Rezerwacje'))
                                   ..whereEqualTo('user', userPointer)
                                   ..whereEqualTo('gra', gamePointer);
 
@@ -272,30 +343,36 @@ class GameDetailsScreenUser extends StatelessWidget {
                                     response.results != null &&
                                     response.results!.isNotEmpty) {
                                   final reservation = response.results![0];
-                                  final uniqueId = reservation.get<String>('uniqueId');
-                                  final egzemplarzeQuery =
-                                  QueryBuilder<ParseObject>(ParseObject('Egzemplarze'))
+                                  final uniqueId =
+                                  reservation.get<String>('uniqueId');
+                                  final egzemplarzeQuery = QueryBuilder<
+                                      ParseObject>(ParseObject('Egzemplarze'))
                                     ..whereEqualTo('uniqueId', uniqueId)
                                     ..whereEqualTo('Status', 1);
 
-                                  final egzemplarzeResponse = await egzemplarzeQuery.query();
+                                  final egzemplarzeResponse =
+                                  await egzemplarzeQuery.query();
 
                                   if (egzemplarzeResponse.success &&
                                       egzemplarzeResponse.results != null &&
                                       egzemplarzeResponse.results!.isNotEmpty) {
-                                    final egzemplarz = egzemplarzeResponse.results![0];
+                                    final egzemplarz =
+                                    egzemplarzeResponse.results![0];
                                     egzemplarz.set('Status', 0);
-                                    final saveResponse = await egzemplarz.save();
+                                    final saveResponse =
+                                    await egzemplarz.save();
 
                                     if (saveResponse.success) {
-                                      final deleteResponse = await reservation.delete();
+                                      final deleteResponse =
+                                      await reservation.delete();
 
                                       if (deleteResponse.success) {
-                                        final gryQuery =
-                                        QueryBuilder<ParseObject>(ParseObject('Gry'))
+                                        final gryQuery = QueryBuilder<
+                                            ParseObject>(ParseObject('Gry'))
                                           ..whereEqualTo('objectId', gameId);
 
-                                        final gryResponse = await gryQuery.query();
+                                        final gryResponse =
+                                        await gryQuery.query();
 
                                         if (gryResponse.success &&
                                             gryResponse.results != null &&
@@ -303,28 +380,30 @@ class GameDetailsScreenUser extends StatelessWidget {
                                           final gry = gryResponse.results![0];
                                           final currentValue =
                                               gry.get<int>('Egzemplarze') ?? 0;
-                                          final incrementedValue = currentValue + 1;
-                                          gry.set('Egzemplarze', incrementedValue);
+                                          final incrementedValue =
+                                              currentValue + 1;
+                                          gry.set(
+                                              'Egzemplarze', incrementedValue);
                                           await gry.save();
                                           refreshReservedGames();
 
                                           Navigator.pop(context);
                                         } else {
-                                          print('Game object not found.');
+                                          print('Nie znaleziony gry.');
                                         }
                                       } else {
                                         print(
-                                            'Error deleting reservation object: ${deleteResponse.error}');
+                                            'Error podczas usuwania rezerwacji: ${deleteResponse.error}');
                                       }
                                     } else {
                                       print(
-                                          'Error saving Egzemplarze object: ${saveResponse.error}');
+                                          'Error podczas zapisywania: ${saveResponse.error}');
                                     }
                                   } else {
-                                    print('Matching Egzemplarze object not found.');
+                                    print('Nie znaleziono egzemplarzy.');
                                   }
                                 } else {
-                                  print('Reservation not found.');
+                                  print('Nie znaleziono rezerwacji.');
                                 }
                               },
                               child: Text('Tak'),

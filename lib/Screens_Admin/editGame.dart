@@ -24,20 +24,36 @@ class EditGameScreen extends StatefulWidget {
 class _EditGameScreenState extends State<EditGameScreen> {
   final _formKey = GlobalKey<FormState>();
   final controllerNazwa = TextEditingController();
-  final controllerLiczbaGraczyOd = TextEditingController();
-  final controllerLiczbaGraczyDo = TextEditingController();
-  final controllerKategoria = TextEditingController();
+  String? controllerLiczbaGraczy;
+  String? controllerKategoria;
   final controllerOpis = TextEditingController();
   final controllerObraz = TextEditingController();
   final controllerEgzemplarze = TextEditingController();
   String? controllerWiek;
-  int? _from;
-  int? _to;
   File? _compressedFile;
   File? _image;
   bool isLoading = false;
   String _gameImage = '';
   List<String> _age = [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "1+",
     "2+",
     "3+",
     "4+",
@@ -56,11 +72,13 @@ class _EditGameScreenState extends State<EditGameScreen> {
     "17+",
     "18+"
   ];
+  List<String> _category = [];
 
   @override
   void initState() {
     super.initState();
     _loadGameDetails();
+    _fetchCategories();
   }
 
   Future<void> _loadGameDetails() async {
@@ -74,18 +92,11 @@ class _EditGameScreenState extends State<EditGameScreen> {
       final game = result.results!.first;
       controllerNazwa.text = game.get<String>('Nazwa') ?? '';
       controllerWiek = game.get<String>('Wiek') ?? '';
-      controllerKategoria.text = game.get<String>('Kategoria') ?? '';
+      controllerKategoria = game.get<String>('Kategoria') ?? '';
+      controllerLiczbaGraczy = game.get<String>('LiczbaGraczy') ?? '';
       controllerOpis.text = game.get<String>('Opis') ?? '';
-      String? liczbaGraczy = game.get<String>('LiczbaGraczy');
       int? egz = game.get<int>('Egzemplarze');
       controllerEgzemplarze.text = egz?.toString() ?? '';
-      if (liczbaGraczy != null) {
-        List<String> liczbaGraczyParts = liczbaGraczy.split('-');
-        if (liczbaGraczyParts.length == 2) {
-          controllerLiczbaGraczyOd.text = liczbaGraczyParts[0].trim();
-          controllerLiczbaGraczyDo.text = liczbaGraczyParts[1].trim();
-        }
-      }
 
       final ParseFile? image = game.get<ParseFile>('Zdjecie');
       String imageUrl = '';
@@ -127,6 +138,21 @@ class _EditGameScreenState extends State<EditGameScreen> {
     }
   }
 
+  Future<void> _fetchCategories() async {
+    final query = QueryBuilder<ParseObject>(ParseObject('Kategorie'));
+    final response = await query.query();
+
+    if (response.success && response.results != null) {
+      setState(() {
+        _category = response.results!
+            .map<String>((category) => category.get<String>('Kategoria') ?? '')
+            .toList();
+      });
+    } else {
+      print('Error: ${response.error}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,15 +169,23 @@ class _EditGameScreenState extends State<EditGameScreen> {
                   SizedBox(
                     height: 16,
                   ),
-                  TextField(
+                  TextFormField(
                     controller: controllerNazwa,
                     keyboardType: TextInputType.text,
                     textCapitalization: TextCapitalization.none,
                     autocorrect: false,
                     decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black)),
-                        labelText: 'Nazwa'),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      labelText: 'Nazwa',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Nazwa nie może być pusta';
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(
                     height: 16,
@@ -171,58 +205,52 @@ class _EditGameScreenState extends State<EditGameScreen> {
                       });
                     },
                     decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black)),
-                        labelText: 'Wiek'),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      labelText: 'Wiek',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Wiek nie może być pusty';
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(
                     height: 16,
                   ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: controllerLiczbaGraczyOd,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: <TextInputFormatter>[
-                            FilteringTextInputFormatter.digitsOnly
-                          ],
-                          autocorrect: false,
-                          decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.black)),
-                              labelText: 'Od'),
-                          onChanged: (text) {
-                            _from = int.tryParse(text);
-                          },
-                        ),
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: controllerLiczbaGraczy,
+                    items: _age.map((gracze) {
+                      return DropdownMenuItem(
+                        value: gracze,
+                        child: Text(gracze),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        controllerLiczbaGraczy = newValue;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
                       ),
-                      SizedBox(
-                        width: 16,
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: controllerLiczbaGraczyDo,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: <TextInputFormatter>[
-                            FilteringTextInputFormatter.digitsOnly
-                          ],
-                          autocorrect: false,
-                          decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.black)),
-                              labelText: 'Do'),
-                          onChanged: (text) {
-                            _to = int.tryParse(text);
-                          },
-                        ),
-                      ),
-                    ],
+                      labelText: 'Liczba graczy',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Liczba graczy nie może być pusta';
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(
                     height: 16,
                   ),
-                  TextField(
+                  TextFormField(
                     controller: controllerEgzemplarze,
                     keyboardType: TextInputType.number,
                     inputFormatters: <TextInputFormatter>[
@@ -236,24 +264,47 @@ class _EditGameScreenState extends State<EditGameScreen> {
                       ),
                       labelText: 'Liczba egzemplarzy',
                     ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Liczba egzemplarzy nie może być pusta';
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(
                     height: 16,
                   ),
-                  TextField(
-                    controller: controllerKategoria,
-                    keyboardType: TextInputType.text,
-                    textCapitalization: TextCapitalization.none,
-                    autocorrect: false,
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: controllerKategoria,
+                    items: _category.map((kategoria) {
+                      return DropdownMenuItem(
+                        value: kategoria,
+                        child: Text(kategoria),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        controllerKategoria = newValue;
+                      });
+                    },
                     decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black)),
-                        labelText: 'Kategoria'),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      labelText: 'Kategoria',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Kategoria nie może być pusta';
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(
                     height: 16,
                   ),
-                  TextField(
+                  TextFormField(
                     controller: controllerOpis,
                     keyboardType: TextInputType.text,
                     textCapitalization: TextCapitalization.none,
@@ -262,30 +313,42 @@ class _EditGameScreenState extends State<EditGameScreen> {
                         border: OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.black)),
                         labelText: 'Opis'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Opis nie może być pusty';
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(
                     height: 16,
                   ),
                   Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8.0),
-                      child: CachedNetworkImage(
-                        imageUrl: _gameImage,
-                        placeholder: (context, url) =>
-                            CircularProgressIndicator(),
-                        errorWidget: (context, url, error) => Icon(Icons.error),
-                        fit: BoxFit.cover,
-                        width: 200.0,
-                        height: 200.0,
+                      child: GestureDetector(
+                    onTap: () {
+                      _getImage();
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blue, width: 2.0),
+                        // Adjust border color and width as needed
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8.0),
+                        child: CachedNetworkImage(
+                          imageUrl: _gameImage,
+                          placeholder: (context, url) =>
+                              CircularProgressIndicator(),
+                          errorWidget: (context, url, error) =>
+                              Icon(Icons.error),
+                          fit: BoxFit.cover,
+                          width: 200.0,
+                          height: 200.0,
+                        ),
                       ),
                     ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      _showGallery().then((value) {});
-                    },
-                    child: Text('Wybierz zdjecie'),
-                  ),
+                  )),
                   Container(
                     height: 50,
                     child: ElevatedButton(
@@ -294,79 +357,82 @@ class _EditGameScreenState extends State<EditGameScreen> {
                           : Text('Zaktualizuj'),
                       style: ElevatedButton.styleFrom(primary: Colors.blue),
                       onPressed: isLoading ||
-                          (_image == null && widget.game['Zdjecie'] == null)
+                              (_image == null && widget.game['Zdjecie'] == null)
                           ? null
                           : () async {
-                        setState(() {
-                          isLoading = true;
-                        });
+                              if (_formKey.currentState!.validate()) {
+                                setState(() {
+                                  isLoading = true;
+                                });
 
-                        ParseFileBase? parseFile;
+                                ParseFileBase? parseFile;
 
-                        if (_image != null) {
-                          await compress();
+                                if (_image != null) {
+                                  await compress();
 
-                          if (kIsWeb) {
-                            parseFile = ParseWebFile(
-                                await _compressedFile!.readAsBytes(),
-                                name: 'image.jpg');
-                          } else {
-                            parseFile =
-                                ParseFile(File(_compressedFile!.path));
-                          }
+                                  if (kIsWeb) {
+                                    parseFile = ParseWebFile(
+                                        await _compressedFile!.readAsBytes(),
+                                        name: 'image.jpg');
+                                  } else {
+                                    parseFile =
+                                        ParseFile(File(_compressedFile!.path));
+                                  }
 
-                          await parseFile.save();
-                        } else {
-                          parseFile =
-                              widget.game.get<ParseFileBase>('Zdjecie');
-                        }
+                                  await parseFile.save();
+                                } else {
+                                  parseFile =
+                                      widget.game.get<ParseFileBase>('Zdjecie');
+                                }
 
-                        final nazwa = controllerNazwa.text.trim();
-                        final wiek = controllerWiek;
-                        final liczbaGraczy = '$_from-$_to';
-                        final kategoria = controllerKategoria.text.trim();
-                        final opis = controllerOpis.text.trim();
-                        String egzemplarzeText =
-                            controllerEgzemplarze.text;
-                        int? egzemplarze = int.tryParse(egzemplarzeText);
+                                final nazwa = controllerNazwa.text.trim();
+                                final wiek = controllerWiek;
+                                final liczbaGraczy = controllerLiczbaGraczy;
+                                final kategoria = controllerKategoria;
+                                final opis = controllerOpis.text.trim();
+                                String egzemplarzeText =
+                                    controllerEgzemplarze.text;
+                                int? egzemplarze =
+                                    int.tryParse(egzemplarzeText);
 
-                        ParseObject gry = ParseObject('Gry')
-                          ..objectId = widget.gameId;
-                        gry.set('Nazwa', nazwa);
-                        gry.set('Wiek', wiek);
-                        gry.set('LiczbaGraczy', liczbaGraczy);
-                        gry.set('Kategoria', kategoria);
-                        gry.set('Opis', opis);
-                        gry.set('Zdjecie', parseFile);
-                        gry.set('Egzemplarze', egzemplarze);
-                        await gry.save();
+                                ParseObject gry = ParseObject('Gry')
+                                  ..objectId = widget.gameId;
+                                gry.set('Nazwa', nazwa);
+                                gry.set('Wiek', wiek);
+                                gry.set('LiczbaGraczy', liczbaGraczy);
+                                gry.set('Kategoria', kategoria);
+                                gry.set('Opis', opis);
+                                gry.set('Zdjecie', parseFile);
+                                gry.set('Egzemplarze', egzemplarze);
+                                await gry.save();
 
-                        setState(() {
-                          isLoading = false;
-                        });
+                                setState(() {
+                                  isLoading = false;
+                                });
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Dane zostały zapisane'),
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Dane zostały zapisane'),
+                                    duration: Duration(seconds: 3),
+                                  ),
+                                );
 
-                        await Future.delayed(Duration(seconds: 2));
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => GameDetailsScreen(
-                              game: widget.game,
-                              gameId: widget.game?.objectId ?? '',
-                            ),
-                          ),
-                        ).then((value) {
-                          setState(() {
-                            // Wywołaj setState, aby odświeżyć widok GameDetailsScreen
-                          });
-                        });
-                      },
+                                await Future.delayed(Duration(seconds: 2));
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => GameDetailsScreen(
+                                      game: widget.game,
+                                      gameId: widget.game?.objectId ?? '',
+                                    ),
+                                  ),
+                                ).then((value) {
+                                  setState(() {
+                                    // Wywołaj setState, aby odświeżyć widok GameDetailsScreen
+                                  });
+                                });
+                              }
+                            },
                     ),
                   ),
                 ],
@@ -374,21 +440,19 @@ class _EditGameScreenState extends State<EditGameScreen> {
             )));
   }
 
-  Future<void> _showGallery() async {
+  Future<void> _getImage() async {
     final ImagePicker _picker = ImagePicker();
 
-    // Show options for camera or gallery
-    await showDialog(
+    await showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Select the image source'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                ElevatedButton(
-                  child: Text('Gallery'),
-                  onPressed: () async {
+        return Container(
+          height: 130.0,
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () async {
                     Navigator.pop(context);
                     final XFile? image =
                     await _picker.pickImage(source: ImageSource.gallery);
@@ -396,14 +460,25 @@ class _EditGameScreenState extends State<EditGameScreen> {
                       setState(() {
                         _image = File(image.path);
                       });
-                      _showConfirmationDialog();
                     }
                   },
+                  child: Container(
+                    padding: EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      border: Border(right: BorderSide(color: Colors.grey)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.photo_library, size: 48.0),
+                      ],
+                    ),
+                  ),
                 ),
-                SizedBox(height: 8),
-                ElevatedButton(
-                  child: Text('Camera'),
-                  onPressed: () async {
+              ),
+              Expanded(
+                child: InkWell(
+                  onTap: () async {
                     Navigator.pop(context);
                     final XFile? image =
                     await _picker.pickImage(source: ImageSource.camera);
@@ -411,12 +486,23 @@ class _EditGameScreenState extends State<EditGameScreen> {
                       setState(() {
                         _image = File(image.path);
                       });
-                      _showConfirmationDialog();
                     }
                   },
+                  child: Container(
+                    padding: EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      border: Border(left: BorderSide(color: Colors.grey)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.photo_camera, size: 48.0),
+                      ],
+                    ),
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

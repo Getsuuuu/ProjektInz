@@ -9,8 +9,7 @@ class GameDetailsScreen extends StatefulWidget {
   final ParseObject game;
   final String gameId;
 
-  const GameDetailsScreen(
-      {Key? key, required this.game, required this.gameId})
+  const GameDetailsScreen({Key? key, required this.game, required this.gameId})
       : super(key: key);
 
   @override
@@ -47,6 +46,26 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
     }
   }
 
+  void _showEnlargedImage(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          child: Container(
+            width: double.infinity,
+            height: 300.0,
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: CachedNetworkImageProvider(imageUrl),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _reserveGame() async {
     if (_availableCopies > 0) {
       setState(() {
@@ -77,11 +96,12 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
           },
         );
 
-        final egzemplarzQuery = QueryBuilder<ParseObject>(ParseObject('Egzemplarze'))
-          ..whereEqualTo('gameId', widget.gameId)
-          ..whereEqualTo('Status', 0)
-          ..orderByAscending('unigueId')
-          ..setLimit(1);
+        final egzemplarzQuery =
+            QueryBuilder<ParseObject>(ParseObject('Egzemplarze'))
+              ..whereEqualTo('gameId', widget.gameId)
+              ..whereEqualTo('Status', 0)
+              ..orderByAscending('unigueId')
+              ..setLimit(1);
 
         final egzemplarzResponse = await egzemplarzQuery.query();
 
@@ -99,8 +119,7 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
               final userPointer = ParseObject('_User')
                 ..objectId = currentUser.objectId;
 
-              final gamePointer = ParseObject('Gry')
-                ..objectId = widget.gameId;
+              final gamePointer = ParseObject('Gry')..objectId = widget.gameId;
 
               final idPointer = ParseObject('Egzemplarze')
                 ..objectId = egzemplarz['objectId'];
@@ -123,7 +142,8 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
             print('Invalid type for egzemplarz');
           }
         } else {
-          print('No available Egzemplarze found for the given game and status.');
+          print(
+              'No available Egzemplarze found for the given game and status.');
         }
       }
     } else {
@@ -154,6 +174,7 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
   }
 
   List<ParseObject> gameList = [];
+
   @override
   Widget build(BuildContext context) {
     isAdminUser().then((isAdmin2) {
@@ -187,129 +208,140 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
       body: _game == null
           ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: FadeInImage(
-                    placeholder: AssetImage('assets/loader.gif'),
-                    image: CachedNetworkImageProvider(imageUrl),
-                    fit: BoxFit.cover,
-                    width: 200.0,
-                    height: 200.0,
-                  ),
-                ),
-              ),
-              SizedBox(height: 16.0),
-              Text(
-                'Nazwa: ${widget.game.get<String>('Nazwa') ?? ''}',
-                style: TextStyle(
-                    fontSize: 20.0, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8.0),
-              Text(
-                'Wiek: ${widget.game.get<String>('Wiek') ?? ''}',
-                style: TextStyle(fontSize: 18.0),
-              ),
-              SizedBox(height: 8.0),
-              Text(
-                'Liczba graczy: ${widget.game.get<String>('LiczbaGraczy') ?? ''}',
-                style: TextStyle(fontSize: 18.0),
-              ),
-              SizedBox(height: 8.0),
-              Text(
-                'Kategoria: ${widget.game.get<String>('Kategoria') ?? ''}',
-                style: TextStyle(fontSize: 18.0),
-              ),
-              SizedBox(height: 8.0),
-              Text(
-                'Opis: ${widget.game.get<String>('Opis') ?? ''}',
-                style: TextStyle(fontSize: 18.0),
-              ),
-              SizedBox(height: 8.0),
-              Text(
-                'Dostępne egzemplarze: ${widget.game.get<int>('Egzemplarze') ?? 0}',
-                style: TextStyle(fontSize: 18.0),
-              ),
-              SizedBox(height: 16.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  if (isAdmin)
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditGameScreen(
-                              gameId: widget.game.objectId,
-                              game: widget.game,
-                            ),
-                          ),
-                        );
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        _showEnlargedImage(imageUrl);
                       },
-                      child: Text('Edytuj grę'),
-                    ),
-                  if (isAdmin)
-                    ElevatedButton(
-                      onPressed: () async {
-                        final confirm = await showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text(
-                                'Czy na pewno chcesz usunąć tę grę?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(false),
-                                child: Text('Nie'),
-                              ),
-                              TextButton(
-                                onPressed: () async {
-                                  final deleted = await deleteGame();
-                                  if (deleted) {
-                                    Navigator.of(context).pop(true);
-                                  }
-                                },
-                                child: Text('Tak'),
-                              ),
-                            ],
+                      child: Center(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: FadeInImage(
+                            placeholder: AssetImage('assets/loader.gif'),
+                            image: CachedNetworkImageProvider(imageUrl),
+                            fit: BoxFit.cover,
+                            width: 200.0,
+                            height: 200.0,
                           ),
-                        );
-                        if (confirm != null && confirm) {
-                          Navigator.pop(context);
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => MenuPageAdmin()),
-                          );
-                        }
-                      },
-                      child: Text('Usuń grę'),
-                    ),
-                    if (isAdmin == false)
-                    ElevatedButton(
-                      onPressed: hasAvailableCopies ? () async {
-                        _reserveGame();
-                      } : null,
-                      style: ElevatedButton.styleFrom(primary: hasAvailableCopies ? Colors.blue : Colors.grey,),
-                      child: Text(
-                        'Zarezerwuj grę',
-                        style: TextStyle(
-                          color: Colors.white,
                         ),
                       ),
                     ),
-                ],
+                    SizedBox(height: 16.0),
+                    Text(
+                      'Nazwa: ${widget.game.get<String>('Nazwa') ?? ''}',
+                      style: TextStyle(
+                          fontSize: 20.0, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 8.0),
+                    Text(
+                      'Wiek: ${widget.game.get<String>('Wiek') ?? ''}',
+                      style: TextStyle(fontSize: 18.0),
+                    ),
+                    SizedBox(height: 8.0),
+                    Text(
+                      'Liczba graczy: ${widget.game.get<String>('LiczbaGraczy') ?? ''}',
+                      style: TextStyle(fontSize: 18.0),
+                    ),
+                    SizedBox(height: 8.0),
+                    Text(
+                      'Kategoria: ${widget.game.get<String>('Kategoria') ?? ''}',
+                      style: TextStyle(fontSize: 18.0),
+                    ),
+                    SizedBox(height: 8.0),
+                    Text(
+                      'Opis: ${widget.game.get<String>('Opis') ?? ''}',
+                      style: TextStyle(fontSize: 18.0),
+                    ),
+                    SizedBox(height: 8.0),
+                    Text(
+                      'Dostępne egzemplarze: ${widget.game.get<int>('Egzemplarze') ?? 0}',
+                      style: TextStyle(fontSize: 18.0),
+                    ),
+                    SizedBox(height: 16.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        if (isAdmin)
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditGameScreen(
+                                    gameId: widget.game.objectId,
+                                    game: widget.game,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Text('Edytuj grę'),
+                          ),
+                        if (isAdmin)
+                          ElevatedButton(
+                            onPressed: () async {
+                              final confirm = await showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: Text(
+                                      'Czy na pewno chcesz usunąć tę grę?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(false),
+                                      child: Text('Nie'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () async {
+                                        final deleted = await deleteGame();
+                                        if (deleted) {
+                                          Navigator.of(context).pop(true);
+                                        }
+                                      },
+                                      child: Text('Tak'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm != null && confirm) {
+                                Navigator.pop(context);
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => MenuPageAdmin()),
+                                );
+                              }
+                            },
+                            child: Text('Usuń grę'),
+                          ),
+                        if (isAdmin == false)
+                          ElevatedButton(
+                            onPressed: hasAvailableCopies
+                                ? () async {
+                                    _reserveGame();
+                                  }
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              primary: hasAvailableCopies
+                                  ? Colors.blue
+                                  : Colors.grey,
+                            ),
+                            child: Text(
+                              'Zarezerwuj grę',
+                              style: TextStyle(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

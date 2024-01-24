@@ -17,14 +17,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.11.0"
-  awesome_notifications:
-    dependency: transitive
-    description:
-      name: awesome_notifications
-      sha256: "2b430c75cc879d6cfd52bb6eb2b5c1591ed425347816408cdcbd3f6916bba14c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.7.4+1"
   boolean_selector:
     dependency: transitive
     description:
@@ -254,6 +246,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.1"
+  flutter_local_notifications:
+    dependency: transitive
+    description:
+      name: flutter_local_notifications
+      sha256: "53c332ecee8e4d723269c1c2d0cdf7cbbff0a66cc0554d230a6f38cae81760d1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "14.1.4"
+  flutter_local_notifications_linux:
+    dependency: transitive
+    description:
+      name: flutter_local_notifications_linux
+      sha256: "33f741ef47b5f63cc7f78fe75eeeac7e19f171ff3c3df054d84c1e38bedb6a03"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0+1"
+  flutter_local_notifications_platform_interface:
+    dependency: transitive
+    description:
+      name: flutter_local_notifications_platform_interface
+      sha256: "7cf643d6d5022f3baed0be777b0662cce5919c0a7b86e700299f22dc4ae660ef"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.0.0+1"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -368,14 +384,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.0"
-  intl:
-    dependency: transitive
-    description:
-      name: intl
-      sha256: "910f85bce16fb5c6f614e117efa303e85a1731bb0081edf3604a2ae6e9a3cc91"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.17.0"
   js:
     dependency: transitive
     description:
@@ -444,10 +452,10 @@ packages:
     dependency: transitive
     description:
       name: package_info_plus
-      sha256: "10259b111176fba5c505b102e3a5b022b51dd97e30522e906d6922c745584745"
+      sha256: "7e76fad405b3e4016cd39d08f455a4eb5199723cf594cd1b8916d47140d93017"
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.2"
+    version: "4.2.0"
   package_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -457,7 +465,7 @@ packages:
     source: hosted
     version: "2.0.1"
   parse_server_sdk:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: parse_server_sdk
       sha256: bf85c1a807849efc380432b8f6c3e91597b6283e7fbbf0151db244de3bef0a5e
@@ -468,10 +476,10 @@ packages:
     dependency: "direct main"
     description:
       name: parse_server_sdk_flutter
-      sha256: "84218af34b20b442e683d7ed1bc41ae067b929e33624b9cf6996a149645110eb"
+      sha256: "3df8eaf20e647eb01b78499732285c43a31fe44fa4cc885d83a4e0e2b706cdeb"
       url: "https://pub.dev"
     source: hosted
-    version: "5.1.0"
+    version: "5.1.2"
   path:
     dependency: transitive
     description:
