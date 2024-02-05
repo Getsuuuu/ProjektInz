@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 
-class AdminSettingsPage extends StatefulWidget {
+class EditAdminPage extends StatefulWidget {
   @override
-  _AdminSettingsPageState createState() => _AdminSettingsPageState();
+  _EditAdminPageState createState() => _EditAdminPageState();
 }
 
-class _AdminSettingsPageState extends State<AdminSettingsPage> {
+class _EditAdminPageState extends State<EditAdminPage> {
   TextEditingController searchController = TextEditingController();
   List<ParseUser> searchResults = [];
   ParseUser? selectedUser;
@@ -20,14 +20,14 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        title: Text('Dodaj/Usuń admina'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
+        resizeToAvoidBottomInset: false,
+        appBar: AppBar(
+          title: Text('Edytuj pracownika'),
+          backgroundColor: Colors.purple,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(children: [
             TextField(
               controller: searchController,
               decoration: InputDecoration(
@@ -70,29 +70,62 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
               ),
             ),
             SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: selectedUser != null &&
-                      (selectedUser!.get<bool>('admin') ?? false) == false
-                  ? () {
-                      setAdminStatus(true);
-                    }
-                  : null,
-              child: Text('Dodaj admina'),
-            ),
-            SizedBox(height: 8.0),
-            ElevatedButton(
-              onPressed: selectedUser != null &&
-                      (selectedUser!.get<bool>('admin') ?? false)
-                  ? () {
-                      setAdminStatus(false);
-                    }
-                  : null,
-              child: Text('Usuń admina'),
-            ),
-          ],
-        ),
-      ),
-    );
+          Align(
+              alignment: Alignment.bottomCenter,
+              child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                    child: ElevatedButton(
+                  onPressed: selectedUser != null &&
+                          (selectedUser!.get<bool>('admin') ?? false) == false
+                      ? () {
+                          setAdminStatus(true);
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.blue,
+                    backgroundColor: Colors.green,
+                    padding: EdgeInsets.symmetric(
+                      vertical: 20.0,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20.0),
+                        topRight: Radius.circular(20.0),
+                      ),
+                    ),
+                  ),
+                  child: Text('Dodaj admina'),
+                )),
+                SizedBox(height: 8.0),
+                Expanded(
+                    child: ElevatedButton(
+                  onPressed: selectedUser != null &&
+                          (selectedUser!.get<bool>('admin') ?? false)
+                      ? () {
+                          setAdminStatus(false);
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.blue,
+                    backgroundColor: Colors.red,
+                    padding: EdgeInsets.symmetric(
+                      vertical: 20.0,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20.0),
+                        topRight: Radius.circular(20.0),
+                      ),
+                    ),
+                  ),
+                  child: Text('Usuń admina'),
+                )),
+              ],
+            )),
+          ]),
+        ));
   }
 
   Future<void> loadUsers() async {

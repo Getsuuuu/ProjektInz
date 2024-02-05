@@ -249,7 +249,9 @@ class _SearchPageState extends State<SearchPage> {
         child: Stack(children: [
           Scaffold(
             appBar: AppBar(
-              title: Text("Wyszukiwarka"),
+              title: Text("Wyszukaj"),
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.red,
             ),
             body: RefreshIndicator(
               onRefresh: _handleRefresh,

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 import '../Screens_Admin/editGame.dart';
 import '../Screens_Admin/menu.dart';
-import 'search.dart';
+import '../Screens_User/menu.dart';
 
 class GameDetailsScreen extends StatefulWidget {
   final ParseObject game;
@@ -87,7 +87,7 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
                   child: Text('OK'),
                   onPressed: () {
                     Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (context) => SearchPage()),
+                      MaterialPageRoute(builder: (context) => MenuPageUser(initialIndex: 0),),
                     );
                   },
                 ),
@@ -97,11 +97,11 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
         );
 
         final egzemplarzQuery =
-            QueryBuilder<ParseObject>(ParseObject('Egzemplarze'))
-              ..whereEqualTo('gameId', widget.gameId)
-              ..whereEqualTo('Status', 0)
-              ..orderByAscending('unigueId')
-              ..setLimit(1);
+        QueryBuilder<ParseObject>(ParseObject('Egzemplarze'))
+          ..whereEqualTo('gameId', widget.gameId)
+          ..whereEqualTo('Status', 0)
+          ..orderByAscending('unigueId')
+          ..setLimit(1);
 
         final egzemplarzResponse = await egzemplarzQuery.query();
 
@@ -204,10 +204,15 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.game.get<String>('Nazwa') ?? ''),
+        backgroundColor: Colors.red,
       ),
       body: _game == null
           ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+          : Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -243,12 +248,14 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
                     ),
                     SizedBox(height: 8.0),
                     Text(
-                      'Liczba graczy: ${widget.game.get<String>('LiczbaGraczy') ?? ''}',
+                      'Liczba graczy: ${widget.game.get<String>(
+                          'LiczbaGraczy') ?? ''}',
                       style: TextStyle(fontSize: 18.0),
                     ),
                     SizedBox(height: 8.0),
                     Text(
-                      'Kategoria: ${widget.game.get<String>('Kategoria') ?? ''}',
+                      'Kategoria: ${widget.game.get<String>('Kategoria') ??
+                          ''}',
                       style: TextStyle(fontSize: 18.0),
                     ),
                     SizedBox(height: 8.0),
@@ -258,90 +265,136 @@ class _GameDetailsScreenState extends State<GameDetailsScreen> {
                     ),
                     SizedBox(height: 8.0),
                     Text(
-                      'Dostępne egzemplarze: ${widget.game.get<int>('Egzemplarze') ?? 0}',
+                      'Dostępne egzemplarze: ${widget.game.get<int>(
+                          'Egzemplarze') ?? 0}',
                       style: TextStyle(fontSize: 18.0),
                     ),
                     SizedBox(height: 16.0),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        if (isAdmin)
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EditGameScreen(
-                                    gameId: widget.game.objectId,
-                                    game: widget.game,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Text('Edytuj grę'),
-                          ),
-                        if (isAdmin)
-                          ElevatedButton(
-                            onPressed: () async {
-                              final confirm = await showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: Text(
-                                      'Czy na pewno chcesz usunąć tę grę?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(context).pop(false),
-                                      child: Text('Nie'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () async {
-                                        final deleted = await deleteGame();
-                                        if (deleted) {
-                                          Navigator.of(context).pop(true);
-                                        }
-                                      },
-                                      child: Text('Tak'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (confirm != null && confirm) {
-                                Navigator.pop(context);
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => MenuPageAdmin()),
-                                );
-                              }
-                            },
-                            child: Text('Usuń grę'),
-                          ),
-                        if (isAdmin == false)
-                          ElevatedButton(
-                            onPressed: hasAvailableCopies
-                                ? () async {
-                                    _reserveGame();
-                                  }
-                                : null,
-                            style: ElevatedButton.styleFrom(
-                              primary: hasAvailableCopies
-                                  ? Colors.blue
-                                  : Colors.grey,
-                            ),
-                            child: Text(
-                              'Zarezerwuj grę',
-                              style: TextStyle(
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
                   ],
                 ),
               ),
             ),
+          ),
+          if (isAdmin)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              EditGameScreen(
+                                gameId: widget.game.objectId,
+                                game: widget.game,
+                              ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      primary: Colors.blue,
+                      backgroundColor: Colors.green,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 20.0,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20.0),
+                          topRight: Radius.circular(20.0),
+                        ),
+                      ),
+                    ),
+                    child: Text('Edytuj grę'),
+                  ),
+                ),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final confirm = await showDialog(
+                        context: context,
+                        builder: (context) =>
+                            AlertDialog(
+                              title: Text('Czy na pewno chcesz usunąć tę grę?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: Text('Nie'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    final deleted = await deleteGame();
+                                    if (deleted) {
+                                      Navigator.of(context).pop(true);
+                                    }
+                                  },
+                                  child: Text('Tak'),
+                                ),
+                              ],
+                            ),
+                      );
+                      if (confirm != null && confirm) {
+                        Navigator.pop(context);
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => MenuPageAdmin()),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      primary: Colors.blue,
+                      backgroundColor: Colors.red,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 20.0,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20.0),
+                          topRight: Radius.circular(20.0),
+                        ),
+                      ),
+                    ),
+                    child: Text('Usuń grę'),
+                  ),
+                ),
+              ],
+            ),
+          if (isAdmin == false)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: ElevatedButton(
+                onPressed: hasAvailableCopies
+                    ? () async {
+                  _reserveGame();
+                }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  primary: hasAvailableCopies ? Colors.blue : Colors.grey,
+                  backgroundColor: Colors.green,
+                  padding: EdgeInsets.symmetric(
+                    vertical: 20.0,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20.0),
+                      topRight: Radius.circular(20.0),
+                    ),
+                  ),
+                  minimumSize: Size(double.infinity, 0),
+                ),
+                child: Text(
+                  'Zarezerwuj grę',
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
-  }
-}
+  }}

@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
 import '../Screens/game_details.dart';
+import 'menu.dart';
 
 class EditGameScreen extends StatefulWidget {
   final ParseObject game;
@@ -158,6 +159,7 @@ class _EditGameScreenState extends State<EditGameScreen> {
     return Scaffold(
         appBar: AppBar(
           title: Text('Edycja gry'),
+          backgroundColor: Colors.red,
         ),
         body: Form(
             key: _formKey,
@@ -330,8 +332,7 @@ class _EditGameScreenState extends State<EditGameScreen> {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.blue, width: 2.0),
-                        // Adjust border color and width as needed
+                        border: Border.all(color: Colors.grey, width: 2.0),
                         borderRadius: BorderRadius.circular(8.0),
                       ),
                       child: ClipRRect(
@@ -349,15 +350,28 @@ class _EditGameScreenState extends State<EditGameScreen> {
                       ),
                     ),
                   )),
+                  SizedBox(height: 16.0,),
                   Container(
-                    height: 50,
+                    width: double.infinity,
                     child: ElevatedButton(
                       child: isLoading
                           ? CircularProgressIndicator()
                           : Text('Zaktualizuj'),
-                      style: ElevatedButton.styleFrom(primary: Colors.blue),
+                      style: ElevatedButton.styleFrom(
+                        primary: Colors.blue,
+                        backgroundColor: Colors.green,
+                        padding: EdgeInsets.symmetric(
+                          vertical: 20.0,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(20.0),
+                            topRight: Radius.circular(20.0),
+                          ),
+                        ),
+                      ),
                       onPressed: isLoading ||
-                              (_image == null && widget.game['Zdjecie'] == null)
+                          (_image == null && widget.game['Zdjecie'] == null)
                           ? null
                           : () async {
                               if (_formKey.currentState!.validate()) {
@@ -418,19 +432,9 @@ class _EditGameScreenState extends State<EditGameScreen> {
                                 );
 
                                 await Future.delayed(Duration(seconds: 2));
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => GameDetailsScreen(
-                                      game: widget.game,
-                                      gameId: widget.game?.objectId ?? '',
-                                    ),
-                                  ),
-                                ).then((value) {
-                                  setState(() {
-                                    // Wywołaj setState, aby odświeżyć widok GameDetailsScreen
-                                  });
-                                });
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (context) => MenuPageAdmin(initialIndex: 0),),
+                                );
                               }
                             },
                     ),
@@ -455,7 +459,7 @@ class _EditGameScreenState extends State<EditGameScreen> {
                   onTap: () async {
                     Navigator.pop(context);
                     final XFile? image =
-                    await _picker.pickImage(source: ImageSource.gallery);
+                        await _picker.pickImage(source: ImageSource.gallery);
                     if (image != null) {
                       setState(() {
                         _image = File(image.path);
@@ -481,7 +485,7 @@ class _EditGameScreenState extends State<EditGameScreen> {
                   onTap: () async {
                     Navigator.pop(context);
                     final XFile? image =
-                    await _picker.pickImage(source: ImageSource.camera);
+                        await _picker.pickImage(source: ImageSource.camera);
                     if (image != null) {
                       setState(() {
                         _image = File(image.path);

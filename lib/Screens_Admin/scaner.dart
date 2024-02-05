@@ -89,6 +89,8 @@ class _ScanerPageState extends State<ScanerPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Zeskanuj QR'),
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.green,
       ),
       body: Column(
         children: [
@@ -104,11 +106,6 @@ class _ScanerPageState extends State<ScanerPage> {
                 cutOutSize: 250,
               ),
             ),
-          ),
-          SizedBox(height: 20),
-          Text(
-            'Skanowanie...',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ],
       ),

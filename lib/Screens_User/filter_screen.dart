@@ -55,8 +55,10 @@ class _FilterScreenState extends State<FilterScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Filter Options'),
+        backgroundColor: Colors.red,
       ),
-      body: ListView(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(height: 16.0),
           Padding(
@@ -67,15 +69,31 @@ class _FilterScreenState extends State<FilterScreen> {
             ),
           ),
           SizedBox(height: 16.0),
-          for (var category in filters.keys)
-            _buildFilterCategory(category),
-          SizedBox(height: 16.0),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: applyFilters,
-              child: Text('Apply Filters'),
+          Expanded(
+            child: ListView(
+              children: [
+                for (var category in filters.keys)
+                  _buildFilterCategory(category),
+              ],
             ),
+          ),
+          ElevatedButton(
+            onPressed: applyFilters,
+            style: ElevatedButton.styleFrom(
+              primary: Colors.blue,
+              backgroundColor: Colors.green,
+              padding: EdgeInsets.symmetric(
+                vertical: 20.0,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20.0),
+                  topRight: Radius.circular(20.0),
+                ),
+              ),
+              minimumSize: Size(double.infinity, 0),
+            ),
+            child: Text('Apply Filters'),
           ),
         ],
       ),

@@ -105,6 +105,7 @@ class AddGameFormState extends State<AddGameForm> {
     return Scaffold(
         appBar: AppBar(
           title: Text('Dodawanie gry'),
+          backgroundColor: Colors.purple,
         ),
         body: Form(
             key: _formKey,
@@ -306,13 +307,24 @@ class AddGameFormState extends State<AddGameForm> {
                         padding: EdgeInsets.only(top: 16.0),
                         // Add some top padding for space
                         child: Container(
-                            height: 50,
+                            width: double.infinity,
                             child: ElevatedButton(
                               child: isLoading
                                   ? CircularProgressIndicator()
                                   : Text('Zapisz'),
                               style: ElevatedButton.styleFrom(
-                                  primary: Colors.blue),
+                                primary: Colors.blue,
+                                backgroundColor: Colors.green,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 20.0,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(20.0),
+                                    topRight: Radius.circular(20.0),
+                                  ),
+                                ),
+                              ),
                               onPressed: isLoading || _image == null
                                   ? null
                                   : () async {

@@ -4,7 +4,7 @@ import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 
 import 'Screens/search.dart';
 import 'Screens_Admin/addGame.dart';
-import 'Screens_Admin/adminSettings.dart';
+import 'Screens_Admin/editAdmin.dart';
 import 'Screens_Admin/menu.dart';
 import 'Screens_Admin/scaner.dart';
 import 'Screens_User/menu.dart';
@@ -44,7 +44,7 @@ void main() async {
       '/reserve': (context) => ReservePage(),
       '/scan': (context) => ScanerPage(),
       '/menuAdmin': (context) => MenuPageAdmin(),
-      '/adminSettings': (context) => AdminSettingsPage(),
+      '/editAdmin': (context) => EditAdminPage(),
     },
   ));
 }

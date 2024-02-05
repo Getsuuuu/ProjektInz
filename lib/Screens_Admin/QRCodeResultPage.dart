@@ -70,12 +70,34 @@ class _ScannedQrCodePageState extends State<ScannedQrCodePage> {
         }
 
         nazwa = gryObject.get<String>('Nazwa') ?? '';
-
       } else {
         print('Error fetching image: ${response.error}');
       }
     } catch (e) {
       print('Error fetching image: $e');
+    }
+  }
+
+  void _showEnlargedImage(BuildContext context) {
+    if (imageUrl != null) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return Dialog(
+            child: Container(
+              width: double.infinity,
+              height: 300.0,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: CachedNetworkImageProvider(imageUrl!),
+                  fit: BoxFit
+                      .cover, // Use BoxFit.cover to fill the available space
+                ),
+              ),
+            ),
+          );
+        },
+      );
     }
   }
 
@@ -94,30 +116,35 @@ class _ScannedQrCodePageState extends State<ScannedQrCodePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Scanned QR Code'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+        appBar: AppBar(
+          title: Text('Zeskanowany kod QR'),
+          backgroundColor: Colors.green,
+        ),
+        body: Center(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             imageUrl != null
                 ? Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8.0),
-                      child: FadeInImage(
-                        placeholder: AssetImage('assets/loader.gif'),
-                        image: CachedNetworkImageProvider(imageUrl!),
-                        fit: BoxFit.cover,
-                        width: 200.0,
-                        height: 200.0,
+                    child: GestureDetector(
+                      onTap: () {
+                        _showEnlargedImage(context);
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8.0),
+                        child: FadeInImage(
+                          placeholder: AssetImage('assets/loader.gif'),
+                          image: CachedNetworkImageProvider(imageUrl!),
+                          fit: BoxFit.cover,
+                          width: 200.0,
+                          height: 200.0,
+                        ),
                       ),
                     ),
                   )
                 : Text(
-              'Brak zdjęcia',
-              style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-            ),
+                    'Brak zdjęcia',
+                    style:
+                        TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                  ),
             Text(
               'Nazwa: $nazwa',
               style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
@@ -126,32 +153,72 @@ class _ScannedQrCodePageState extends State<ScannedQrCodePage> {
               'Nazwa odbierającego: ' + widget.currentUser,
               style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.popUntil(context, ModalRoute.withName('/menuAdmin'));
-                widget.onReturn();
-              },
-              child: Text('Anuluj'),
+            Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                    child: ElevatedButton(
+                        onPressed: () async {
+                          final ParseObject scannedQRObject =
+                              ParseObject('ScannedQR')
+                                ..set<String>('uniqueId', widget.uniqueId)
+                                ..set<String>('user', widget.currentUser)
+                                ..set<bool>('scanned', true);
+
+                          final ParseResponse response =
+                              await scannedQRObject.save();
+
+                          if (response.success) {
+                            print('Zeskanowane dane zapisane');
+                          } else {
+                            print(
+                                'Error podczas zapisywania danych: ${response.error}');
+                          }
+                          Navigator.popUntil(
+                              context, ModalRoute.withName('/menuAdmin'));
+                        },
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.blue,
+                          // Background color
+                          backgroundColor: Colors.green,
+                          padding: EdgeInsets.symmetric(
+                            vertical: 20.0,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(20.0),
+                              topRight: Radius.circular(20.0),
+                            ),
+                          ),
+                        ),
+                        child: Text('Wypożycz'))),
+                Expanded(
+                    child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.popUntil(
+                        context, ModalRoute.withName('/menuAdmin'));
+                    widget.onReturn();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.blue,
+                    // Background color
+                    backgroundColor: Colors.red,
+                    padding: EdgeInsets.symmetric(
+                      vertical: 20.0,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20.0),
+                        topRight: Radius.circular(20.0),
+                      ),
+                    ),
+                  ),
+                  child: Text('Anuluj'),
+                )),
+              ],
             ),
-            ElevatedButton(onPressed: () async {
-              final ParseObject scannedQRObject = ParseObject('ScannedQR')
-                ..set<String>('uniqueId', widget.uniqueId)
-                ..set<String>('user', widget.currentUser)
-                ..set<bool>('scanned', true);
-
-              final ParseResponse response = await scannedQRObject.save();
-
-              if (response.success) {
-                print('Zeskanowane dane zapisane');
-              } else {
-                print('Error podczas zapisywania danych: ${response.error}');
-              }
-              Navigator.popUntil(context, ModalRoute.withName('/menuAdmin'));
-            },
-                child: Text('Wypożycz'))
-          ],
-        ),
-      ),
-    );
+          ]),
+        ));
   }
 }

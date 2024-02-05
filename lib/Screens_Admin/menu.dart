@@ -1,86 +1,74 @@
 import 'package:flutter/material.dart';
-import 'package:parse_server_sdk/parse_server_sdk.dart';
-import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
+import '../Screens/search.dart';
+import '../Screens/options.dart';
+import 'scaner.dart';
 
 class MenuPageAdmin extends StatefulWidget {
+  final int initialIndex;
+
+  const MenuPageAdmin({Key? key, this.initialIndex = 0}) : super(key: key);
+
   @override
   State<MenuPageAdmin> createState() => _MenuPageAdminState();
 }
 
 class _MenuPageAdminState extends State<MenuPageAdmin> {
-  bool isSuperAdmin = false; // Assume the user is not a super admin initially
+  late int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    checkSuperAdminStatus();
+    _selectedIndex = widget.initialIndex;
   }
 
-  Future<void> checkSuperAdminStatus() async {
-    try {
-      final currentUser = await ParseUser.currentUser();
-
-      if (currentUser != null) {
-        final isSuperAdminUser = currentUser.get<bool>('superAdmin') ?? false;
-
-        setState(() {
-          isSuperAdmin = isSuperAdminUser;
-        });
-      } else {
-        print('Current user is null.');
-      }
-    } catch (e) {
-      print('Error podczas sprawdzania statusu admina: $e');
-    }
-  }
+  final List<Widget> _screens = [
+    SearchPage(),
+    ScanerPage(),
+    OptionsScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/search');
-              },
-              child: Text('Wyszukiwarka'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/scan');
-              },
-              child: Text('Skaner'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/addGame');
-              },
-              child: Text('Dodaj grę'),
+    return Scaffold(
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.5),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: Offset(0, 2),
             ),
           ],
         ),
-        if (isSuperAdmin)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/adminSettings');
-                },
-                child: Text('Opcje'),
-              ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/');
-              },
-              child: Text('Wyloguj'),
-            ),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.shifting,
+          items: <BottomNavigationBarItem>[
+            _buildCustomNavItem(Icons.search, 'Wyszukaj', Colors.red),
+            _buildCustomNavItem(Icons.qr_code_scanner, 'Skaner', Colors.green),
+            _buildCustomNavItem(Icons.settings, 'Opcje', Colors.purple),
           ],
+          currentIndex: _selectedIndex,
+          selectedItemColor: Colors.white,
+          unselectedItemColor: Colors.grey,
+          onTap: (index) {
+            print("Selected index: $index");
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
         ),
-      ],
+      ),
+    );
+  }
+
+  BottomNavigationBarItem _buildCustomNavItem(IconData icon, String label, Color color) {
+    return BottomNavigationBarItem(
+      icon: Icon(icon, color: Colors.white),
+      label: label,
+      backgroundColor: color,
     );
   }
 }
